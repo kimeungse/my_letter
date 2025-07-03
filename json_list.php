@@ -22,9 +22,13 @@ $data = array();
 if ($result->num_rows > 0) {
 	while($row = $result->fetch_assoc()) {
 		if(trim($row['file_path']) != "") {
-			$str = rtrim($row['file_path'], '|');
-			$images = explode("|",$str);
-			
+            // JSON 배열로 저장된 경우 처리
+            $images = json_decode($row['file_path'], true);
+            if (!is_array($images)) {
+                // 구버전(|구분) 데이터 호환
+                $str = rtrim($row['file_path'], '|');
+                $images = explode("|", $str);
+            }
 			$data[] = [
 			'id' => $row['id'],
 			'title' => $row['title'],

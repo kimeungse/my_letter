@@ -82,8 +82,15 @@
                     echo "<td colspan='3'>" . nl2br($row["content"]) . "</td>";
                     echo "</tr>";
                     if(trim($row["file_path"]) != ""){
-                        $filePaths = explode("|", $row["file_path"]);
-                        $originFilePaths = explode("|", $row["origin_file_path"]);
+                        $filePaths = json_decode($row["file_path"], true);
+                        if (!is_array($filePaths)) {
+                            // 구버전 데이터 호환: |로 구분된 문자열 처리
+                            $filePaths = explode("|", $row["file_path"]);
+                        }
+                        $originFilePaths = json_decode($row["origin_file_path"], true);
+                        if (!is_array($originFilePaths)) {
+                            $originFilePaths = explode("|", $row["origin_file_path"]);
+                        }
                         echo "<tr>";
                         echo "<td colspan='3'>";
                         foreach ($filePaths as $file_path): 
