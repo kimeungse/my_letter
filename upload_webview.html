@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Upload</title>
+</head>
+<body>
+    <h1>Upload a File</h1>
+
+	제목 : <input type=text name=title size=10><br>
+
+	내용 : <input type=text name=content size=10><br>
+	<input type="file" id="fileInput" name="file" />
+    <button onclick="uploadFile()">Upload</button>
+
+    <script>
+        function uploadFile() {
+            var fileInput = document.getElementById('fileInput');
+            var file = fileInput.files[0];
+
+            if (file) {
+                var formData = new FormData();
+                formData.append('file', file);
+
+                fetch('./upload_webview_save.php', {  // TODO: 실제 업로드 엔드포인트 URL로 변경
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.text())
+                .then(data => {
+                    alert('Upload successful: ' + data);
+                    // 업로드 성공 후 처리 (예: 페이지 리로드)
+                    location.reload();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Upload failed: ' + error);
+                });
+            } else {
+                alert('Please select a file.');
+            }
+        }
+    </script>
+</body>
+</html>
