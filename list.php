@@ -67,8 +67,20 @@
         </thead>
         <tbody>
             <?php
-            // 게시판 데이터 가져오기
-            $sql = "SELECT * FROM posts order by reg_date desc";
+            // 페이지네이션 설정
+            $itemsPerPage = 5;
+            $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+            $offset = ($page - 1) * $itemsPerPage;
+
+            // 전체 게시글 수 구하기
+            $sqlTotal = "SELECT COUNT(*) AS total FROM posts";
+            $resultTotal = $conn->query($sqlTotal);
+            $rowTotal = $resultTotal->fetch_assoc();
+            $totalItems = $rowTotal['total'];
+            $totalPages = ceil($totalItems / $itemsPerPage);
+
+            // 게시판 데이터 가져오기 (페이지네이션 적용)
+            $sql = "SELECT * FROM posts ORDER BY reg_date DESC LIMIT $itemsPerPage OFFSET $offset";
             $result = $conn->query($sql);
             if ($result->num_rows > 0) {
                 // 데이터 출력
@@ -110,4 +122,42 @@
             ?>
         </tbody>
     </table>
+    <!-- 페이지네비게이션 UI -->
+    <?php if ($totalPages > 1): ?>
+        <div style="text-align: center; margin: 1rem 0;">
+            <?php
+            $pageBlock = 5; // 한 번에 보여줄 페이지 번호 개수
+            $currentBlock = ceil($page / $pageBlock);
+            $startPage = ($currentBlock - 1) * $pageBlock + 1;
+            $endPage = min($totalPages, $currentBlock * $pageBlock);
+
+            // 처음으로
+            if ($page > 1) {
+                echo "[<a href='?menu=list&page=1' style='margin:0 5px;'>처음</a>] ";
+            }
+            // 이전 5페이지
+            if ($startPage > 1) {
+                $prevBlock = $startPage - 1;
+                echo "[<a href='?menu=list&page=$prevBlock' style='margin:0 5px;'>이전</a>] ";
+            }
+            // 페이지 번호
+            for ($i = $startPage; $i <= $endPage; $i++) {
+                if ($i == $page) {
+                    echo "<strong>[$i]</strong> ";
+                } else {
+                    echo "<a href='?menu=list&page=$i' style='margin:0 5px;'>[$i]</a> ";
+                }
+            }
+            // 다음 5페이지
+            if ($endPage < $totalPages) {
+                $nextBlock = $endPage + 1;
+                echo "[<a href='?menu=list&page=$nextBlock' style='margin:0 5px;'>다음</a>] ";
+            }
+            // 마지막으로  v
+            if ($page < $totalPages) {
+                echo "[<a href='?menu=list&page=$totalPages' style='margin:0 5px;'>마지막</a>] ";
+            }
+            ?>
+        </div>
+    <?php endif; ?>
 </div>

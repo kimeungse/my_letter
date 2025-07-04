@@ -45,11 +45,22 @@ class MultiFileUpload {
                     $fileNameNew = uniqid($safeName . '_', true) . '.' . $fileType;
                     $fileDestination = $this->uploadDir . '/' . $fileNameNew;
 
-                    if (move_uploaded_file($fileTmpName, $fileDestination)) {
-                        $this->realFileName[] = $fileNameNew;
-                        $this->originalFileName[] = $name;
+                    // 1MB 초과 이미지 리사이즈(압축)
+                    if (in_array($fileType, ['jpg', 'jpeg', 'png']) && $fileSize > 1048576) {
+                        $success = $this->resizeAndSaveImage($fileTmpName, $fileDestination, $fileType);
+                        if ($success) {
+                            $this->realFileName[] = $fileNameNew;
+                            $this->originalFileName[] = $name;
+                        } else {
+                            $this->errors[] = "[{$name}] 이미지 리사이즈/압축 실패";
+                        }
                     } else {
-                        $this->errors[] = "[{$name}] 파일 이동 실패";
+                        if (move_uploaded_file($fileTmpName, $fileDestination)) {
+                            $this->realFileName[] = $fileNameNew;
+                            $this->originalFileName[] = $name;
+                        } else {
+                            $this->errors[] = "[{$name}] 파일 이동 실패";
+                        }
                     }
                 } else {
                     $this->errors[] = "[{$name}] 허용 확장자: " . implode(', ', $this->allowedFileTypes) . ", 최대 크기: " . ($this->maxFileSize / 1024 / 1024) . "MB";
@@ -60,6 +71,45 @@ class MultiFileUpload {
         }
         // 전체 성공 여부 반환
         return empty($this->errors);
+    }
+
+    /**
+     * 이미지 파일을 1MB 이하로 압축/저장
+     */
+    private function resizeAndSaveImage($src, $dest, $ext) {
+        $maxSize = 1048576; // 1MB
+        if ($ext === 'jpg' || $ext === 'jpeg') {
+            $image = imagecreatefromjpeg($src);
+            $quality = 85;
+            ob_start();
+            imagejpeg($image, null, $quality);
+            $data = ob_get_clean();
+            while (strlen($data) > $maxSize && $quality > 10) {
+                $quality -= 5;
+                ob_start();
+                imagejpeg($image, null, $quality);
+                $data = ob_get_clean();
+            }
+            $result = file_put_contents($dest, $data);
+            imagedestroy($image);
+            return $result !== false && filesize($dest) <= $maxSize;
+        } elseif ($ext === 'png') {
+            $image = imagecreatefrompng($src);
+            $quality = 9; // 0(최고화질)-9(최고압축)
+            ob_start();
+            imagepng($image, null, $quality);
+            $data = ob_get_clean();
+            while (strlen($data) > $maxSize && $quality < 9) {
+                $quality++;
+                ob_start();
+                imagepng($image, null, $quality);
+                $data = ob_get_clean();
+            }
+            $result = file_put_contents($dest, $data);
+            imagedestroy($image);
+            return $result !== false && filesize($dest) <= $maxSize;
+        }
+        return false;
     }
 
     /**
