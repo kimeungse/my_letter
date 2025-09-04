@@ -63,6 +63,7 @@
                 <th>ID</th>
                 <th>제목</th>
                 <th>날짜</th>
+                <th>관리</th>
             </tr>
         </thead>
         <tbody>
@@ -85,14 +86,18 @@
             if ($result->num_rows > 0) {
                 // 데이터 출력
                 while ($row = $result->fetch_assoc()) {
-                    echo "<tr>";
-                    echo "<td>" . $row["id"] . "</td>";
+                    $postId = $row["id"];
+                    echo "<tr class='post-group-{$postId}'>";
+                    echo "<td>" . $postId . "</td>";
                     echo "<td>" . $row["title"] . "</td>";
                     echo "<td>" . $row["reg_date"] . "</td>";
+                    echo "<td><button class='delete-btn' data-id='{$postId}'>삭제</button></td>";
                     echo "</tr>";
-                    echo "<tr>";
-                    echo "<td colspan='3'>" . nl2br($row["content"]) . "</td>";
+
+                    echo "<tr class='post-group-{$postId}'>";
+                    echo "<td colspan='4'>" . nl2br($row["content"]) . "</td>";
                     echo "</tr>";
+                    
                     if(trim($row["file_path"]) != ""){
                         $filePaths = json_decode($row["file_path"], true);
                         if (!is_array($filePaths)) {
@@ -103,8 +108,9 @@
                         if (!is_array($originFilePaths)) {
                             $originFilePaths = explode("|", $row["origin_file_path"]);
                         }
-                        echo "<tr>";
-                        echo "<td colspan='3'>";
+
+                        echo "<tr class='post-group-{$postId}'>";
+                        echo "<td colspan='4'>";
                         foreach ($filePaths as $file_path): 
                             if (trim($file_path) != ''):  ?>
                                 <div class="image-container">
@@ -117,7 +123,7 @@
                     }
                 }
             } else {
-                echo "<tr><td colspan='3' style='text-align:center;'>게시물이 없습니다.</td></tr>";
+                echo "<tr><td colspan='4' style='text-align:center;'>게시물이 없습니다.</td></tr>";
             }
             ?>
         </tbody>
@@ -161,3 +167,40 @@
         </div>
     <?php endif; ?>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.querySelector('table');
+    if (table) {
+        table.addEventListener('click', function(event) {
+            if (event.target.classList.contains('delete-btn')) {
+                const button = event.target;
+                const postId = button.dataset.id;
+
+                if (confirm('정말 삭제하시겠습니까?')) {
+                    const formData = new FormData();
+                    formData.append('id', postId);
+
+                    fetch('webview_delete.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('게시물이 삭제되었습니다.');
+                            const rowsToDelete = document.querySelectorAll('.post-group-' + postId);
+                            rowsToDelete.forEach(row => row.remove());
+                        } else {
+                            alert('삭제 실패: ' + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('삭제 중 오류가 발생했습니다.');
+                    });
+                }
+            }
+        });
+    }
+});
+</script>
